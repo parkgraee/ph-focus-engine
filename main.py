@@ -8,10 +8,10 @@ app = FastAPI()
 
 # 환경 변수에서 API 키를 안전하게 불러옵니다
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
+print(f"DEBUG: OPENAI_API_KEY exists: {bool(os.environ.get('OPENAI_API_KEY'))}")
 class TextRequest(BaseModel):
     text: str
-
+    
 # AI가 핵심 단어를 추출하는 함수
 def extract_keywords_with_ai(text: str):
     try:
