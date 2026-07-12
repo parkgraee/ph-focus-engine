@@ -40,8 +40,9 @@ def get_ui():
 # 2. 텍스트 변환 로직 (API)
 @app.post("/process")
 def process_text(request: TextRequest):
-    # 여기서 특수문자 변환 로직을 구현하세요 (현재는 예시)
-    original_text = request.text
-    # 간단한 변환 예시: '파트너님'이라는 글자가 있으면 대문자/특수문자 처리
-    transformed = original_text.replace("파트너님", "【ＰＡＲＴＮＥＲ】")
-    return {"result": transformed}
+    text = request.text
+    # 예시: '박훈'이라는 단어를 찾아서 강조 표시(★)를 붙여줍니다.
+    if "박훈" in text:
+        text = text.replace("박훈", "【★ 박훈 ★】")
+    
+    return {"result": text}
