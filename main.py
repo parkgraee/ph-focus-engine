@@ -1,22 +1,34 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+import re
 
 app = FastAPI()
 
 class TextRequest(BaseModel):
     text: str
 
-# 메인 페이지: 웹 화면 제공
+# 중요 키워드 선정 로직 (AI의 기초 단계)
+def enhance_text_with_ai(text: str):
+    # 강조할 단어 목록 (나중에 AI 모델로 확장 가능)
+    keywords = ["중요", "긴급", "회의", "확인", "필수", "이벤트", "할인"]
+    
+    enhanced = text
+    for word in keywords:
+        # 단어가 포함되어 있다면 대괄호를 씌움
+        if word in enhanced:
+            enhanced = enhanced.replace(word, f"【{word}】")
+    return enhanced
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     return """
     <html>
-        <body>
-            <h2>PH Focus 엔진 테스트기</h2>
-            <textarea id="inputText" placeholder="텍스트를 입력하세요"></textarea>
-            <button onclick="analyzeText()">분석하기</button>
-            <p>결과: <span id="result"></span></p>
+        <body style="font-family: sans-serif; padding: 20px;">
+            <h2>PH Focus AI 엔진 (v2.0)</h2>
+            <textarea id="inputText" style="width:100%; height:100px;"></textarea><br>
+            <button onclick="analyzeText()" style="padding: 10px 20px; margin-top:10px;">분석하기</button>
+            <p><strong>결과:</strong> <span id="result" style="font-weight:bold; color:#d9534f;"></span></p>
             <script>
                 async function analyzeText() {
                     const text = document.getElementById('inputText').value;
@@ -33,8 +45,7 @@ def read_root():
     </html>
     """
 
-# API 로직
 @app.post("/process")
 def process_text(request: TextRequest):
-    enhanced_text = request.text.replace("중요", "【중요】")
-    return {"enhanced": enhanced_text}
+    enhanced = enhance_text_with_ai(request.text)
+    return {"enhanced": enhanced}
