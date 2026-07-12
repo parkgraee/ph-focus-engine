@@ -49,3 +49,21 @@ def read_root():
 def process_text(request: TextRequest):
     enhanced = enhance_text_with_ai(request.text)
     return {"enhanced": enhanced}
+
+import openai # OpenAI 라이브러리 필요
+
+# AI가 핵심 단어를 추출하게 하는 함수
+def extract_keywords_with_ai(text: str):
+    client = openai.OpenAI(api_key="본인의_API_키")
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "너는 텍스트 가독성 전문가야. 입력된 문장에서 가장 중요한 키워드 3개를 뽑아서 콤마(,)로 구분해줘."},
+            {"role": "user", "content": text}
+        ]
+    )
+    # AI가 뽑아준 단어들을 리스트로 변환
+    keywords = response.choices[0].message.content.split(',')
+    return [k.strip() for k in keywords]
+
