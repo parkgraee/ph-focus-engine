@@ -45,7 +45,16 @@ def get_ui():
 @app.post("/process")
 def process_text(request: TextRequest):
     try:
-        prompt = f"당신은 가독성 전문가입니다. 다음 문구의 핵심 키워드를 찾아내고, 특수문자나 줄바꿈을 활용하여 눈에 띄게 재구성하세요. 설명은 생략하고 결과물만 출력하세요: {request.text}"
+       
+       prompt = (
+            f"당신은 가독성 전문가입니다. 다음 문장의 원문을 수정하지 않고 오직 서식(볼드체)만 적용하여 가독성을 높이세요.\n"
+            f"절대 준수 규칙:\n"
+            f"1. 글자 수 100% 보존: 공백 포함 원문 글자 수와 똑같아야 합니다.\n"
+            f"2. 추가/삭제 금지: 단 한 글자도 추가하거나 삭제하지 마세요.\n"
+            f"3. 가독성 강조: 중요한 키워드에만 **볼드체**를 적용하세요.\n"
+            f"원문: {request.text}"
+        ) 
+        
         response = model.generate_content(prompt)
         return {"result": response.text}
     except Exception as e:
