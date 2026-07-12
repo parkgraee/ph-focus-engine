@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>PH Focus Tester</title>
+</head>
+<body>
+    <h2>PH Focus 엔진 테스트기</h2>
+    <textarea id="inputText" placeholder="텍스트를 입력하세요 (예: 이것은 매우 중요한 공지입니다)"></textarea>
+    <button onclick="analyzeText()">분석하기</button>
+    <hr>
+    <p><strong>결과:</strong> <span id="result"></span></p>
+
+    <script>
+        async function analyzeText() {
+            const text = document.getElementById('inputText').value;
+            const res = await fetch('https://ph-focus-engine.vercel.app/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+            const data = await res.json();
+            document.getElementById('result').innerText = data.enhanced;
+        }
+    </script>
+</body>
+</html>
