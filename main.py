@@ -7,6 +7,7 @@ import google.generativeai as genai
 
 app = FastAPI()
 
+# API 키 설정 (환경 변수)
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 model = genai.GenerativeModel('gemini-3.5-flash')
 
@@ -17,12 +18,14 @@ class TextRequest(BaseModel):
 def get_ui():
     return """
     <html>
-        <style>
-            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
-                       width: 30px; height: 30px; animation: spin 1s linear infinite; 
-                       display: inline-block; vertical-align: middle; margin-right: 10px; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
+        <head>
+            <style>
+                .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
+                           width: 30px; height: 30px; animation: spin 1s linear infinite; 
+                           display: inline-block; vertical-align: middle; margin-right: 10px; }
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+        </head>
         <body>
             <h2>PH Focus Engine</h2>
             <textarea id="inputText" rows="4" cols="50" placeholder="문구를 입력하세요"></textarea><br>
@@ -34,7 +37,7 @@ def get_ui():
                 const text = document.getElementById("inputText").value;
                 const resultDiv = document.getElementById("result");
                 
-                // 1. 요청 시작: 로딩 애니메이션과 텍스트를 즉시 표시
+                // 요청 즉시 로딩 애니메이션 표시
                 resultDiv.innerHTML = '<div class="spinner"></div>문자를 분석하여 재구성중...';
                 
                 try {
@@ -43,12 +46,13 @@ def get_ui():
                         headers: {"Content-Type": "application/json"},
                         body: JSON.stringify({text: text})
                     });
+                    
                     const data = await response.json();
                     
-                    // 2. 결과 수신 후: 텍스트를 결과값으로 덮어씀
+                    // 결과 수신 후 결과로 교체
                     resultDiv.innerHTML = data.result;
                 } catch (e) {
-                    resultDiv.innerHTML = "분석 오류가 발생했습니다.";
+                    resultDiv.innerHTML = "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
                 }
             }
             </script>
@@ -67,6 +71,7 @@ def process_text(request: TextRequest):
     
     try:
         response = model.generate_content(prompt)
+        # 응답에서 JSON만 추출
         start = response.text.find('{')
         end = response.text.rfind('}') + 1
         data = json.loads(response.text[start:end])
@@ -74,7 +79,7 @@ def process_text(request: TextRequest):
         corrected_text = data.get("corrected", request.text)
         scores = data.get("scores", {})
         
-        # HTML <b> 태그 적용
+        # 90점 이상인 단어만 HTML <b> 태그 처리
         result_words = []
         for word in corrected_text.split():
             clean_word = word.strip(".,!?")
@@ -85,4 +90,4 @@ def process_text(request: TextRequest):
                 
         return {"result": " ".join(result_words)}
     except Exception as e:
-        return {"result": "분석 오류가 발생했습니다."}
+        return {"result": "분석 중 오류가 발생했습니다. (잠시 후 다시 시도해주세요)"}
