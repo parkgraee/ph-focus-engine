@@ -9,7 +9,7 @@ app = FastAPI()
 # Google API 키 설정
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('gemini-1.5-flash-8b')
 
 
 class TextRequest(BaseModel):
