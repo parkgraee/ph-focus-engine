@@ -38,15 +38,17 @@ def get_ui():
                     body: JSON.stringify({text: text})
                 });
                 
-                // 스트리밍 응답 처리를 위한 로직
+                // 스트리밍 응답을 읽기 위한 Reader 생성
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                resultDiv.innerText = "";
+                resultDiv.innerText = ""; // '처리 중...' 문구 삭제
                 
+                // 서버가 보내주는 조각(chunk)을 실시간으로 화면에 추가
                 while (true) {
                     const {done, value} = await reader.read();
-                    if (done) break;
-                    resultDiv.innerText += decoder.decode(value);
+                    if (done) break; // 응답 종료 시 루프 탈출
+                    const chunkText = decoder.decode(value);
+                    resultDiv.innerText += chunkText; // 실시간 텍스트 추가
                 }
             }
             </script>
