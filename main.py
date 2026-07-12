@@ -27,21 +27,29 @@ def get_ui():
             <h2>PH Focus Engine</h2>
             <textarea id="inputText" rows="4" cols="50" placeholder="문구를 입력하세요"></textarea><br>
             <button onclick="processText()">가독성 개선하기</button>
-            <div id="result" style="font-size: 20px; border: 1px solid #ccc; padding: 10px; margin-top: 20px;"></div>
+            <div id="result" style="font-size: 20px; border: 1px solid #ccc; padding: 10px; margin-top: 20px; min-height: 50px;"></div>
             
             <script>
             async function processText() {
                 const text = document.getElementById("inputText").value;
                 const resultDiv = document.getElementById("result");
+                
+                // 1. 요청 시작: 로딩 애니메이션과 텍스트를 즉시 표시
                 resultDiv.innerHTML = '<div class="spinner"></div>문자를 분석하여 재구성중...';
                 
-                const response = await fetch("/process", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({text: text})
-                });
-                const data = await response.json();
-                resultDiv.innerHTML = data.result;
+                try {
+                    const response = await fetch("/process", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({text: text})
+                    });
+                    const data = await response.json();
+                    
+                    // 2. 결과 수신 후: 텍스트를 결과값으로 덮어씀
+                    resultDiv.innerHTML = data.result;
+                } catch (e) {
+                    resultDiv.innerHTML = "분석 오류가 발생했습니다.";
+                }
             }
             </script>
         </body>
@@ -50,33 +58,31 @@ def get_ui():
 
 @app.post("/process")
 def process_text(request: TextRequest):
-    # AI에게 교정 및 점수 데이터만 요청
     prompt = (
-        f"1. 다음 문장의 오탈자와 띄어쓰기를 교정하세요.\n"
-        f"2. 교정된 문장의 각 단어별 중요도를 1~100 점수로 매기세요.\n"
-        f"3. 반드시 아래 JSON 형식으로만 응답하세요.\n"
-        f"{{\"corrected\": \"교정된 문장\", \"scores\": {{\"단어1\": 점수, \"단어2\": 점수}}}\n\n"
+        f"입력된 문장의 오탈자를 교정하고, 각 단어의 중요도를 1~100으로 평가하세요.\n"
+        f"반드시 아래 JSON 형식으로만 응답하세요.\n"
+        f"{{\"corrected\": \"교정된 문장\", \"scores\": {{\"단어\": 90, \"단어\": 10}}}}\n\n"
         f"문장: {request.text}"
     )
     
-    response = model.generate_content(prompt)
     try:
+        response = model.generate_content(prompt)
         start = response.text.find('{')
         end = response.text.rfind('}') + 1
         data = json.loads(response.text[start:end])
-        corrected_text = data["corrected"]
-        scores = data["scores"]
-    except:
-        return {"result": "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}
-
-    # 코드에서 직접 볼드체 적용 (90점 이상)
-    result_words = []
-    for word in corrected_text.split():
-        clean_word = word.strip(".,!?")
-        score = scores.get(clean_word, 0)
-        if score >= 90:
-            result_words.append(f"<b>{word}</b>")
-        else:
-            result_words.append(word)
-            
-    return {"result": " ".join(result_words)}
+        
+        corrected_text = data.get("corrected", request.text)
+        scores = data.get("scores", {})
+        
+        # HTML <b> 태그 적용
+        result_words = []
+        for word in corrected_text.split():
+            clean_word = word.strip(".,!?")
+            if scores.get(clean_word, 0) >= 90:
+                result_words.append(f"<b>{word}</b>")
+            else:
+                result_words.append(word)
+                
+        return {"result": " ".join(result_words)}
+    except Exception as e:
+        return {"result": "분석 오류가 발생했습니다."}
