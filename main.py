@@ -6,8 +6,6 @@ from pydantic import BaseModel
 import google.generativeai as genai
 
 app = FastAPI()
-
-# API 키 설정 (환경 변수)
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 model = genai.GenerativeModel('gemini-3.5-flash')
 
@@ -18,42 +16,25 @@ class TextRequest(BaseModel):
 def get_ui():
     return """
     <html>
-        <head>
-            <style>
-                .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
-                           width: 30px; height: 30px; animation: spin 1s linear infinite; 
-                           display: inline-block; vertical-align: middle; margin-right: 10px; }
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            </style>
-        </head>
         <body>
             <h2>PH Focus Engine</h2>
-            <textarea id="inputText" rows="4" cols="50" placeholder="문구를 입력하세요"></textarea><br>
-            <button onclick="processText()">가독성 개선하기</button>
-            <div id="result" style="font-size: 20px; border: 1px solid #ccc; padding: 10px; margin-top: 20px; min-height: 50px;"></div>
+            <textarea id="inputText" rows="4" cols="50"></textarea><br>
+            <button id="btn" onclick="process()">가독성 개선하기</button>
+            <div id="result" style="font-size: 20px; border: 1px solid #ccc; padding: 10px; margin-top: 20px;"></div>
             
             <script>
-            async function processText() {
+            async function process() {
                 const text = document.getElementById("inputText").value;
-                const resultDiv = document.getElementById("result");
+                const div = document.getElementById("result");
+                div.innerHTML = "🔄 분석 및 재구성 중...";
                 
-                // 요청 즉시 로딩 애니메이션 표시
-                resultDiv.innerHTML = '<div class="spinner"></div>문자를 분석하여 재구성중...';
-                
-                try {
-                    const response = await fetch("/process", {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({text: text})
-                    });
-                    
-                    const data = await response.json();
-                    
-                    // 결과 수신 후 결과로 교체
-                    resultDiv.innerHTML = data.result;
-                } catch (e) {
-                    resultDiv.innerHTML = "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
-                }
+                const res = await fetch("/process", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({text: text})
+                });
+                const data = await res.json();
+                div.innerHTML = data.result;
             }
             </script>
         </body>
@@ -62,32 +43,12 @@ def get_ui():
 
 @app.post("/process")
 def process_text(request: TextRequest):
-    prompt = (
-        f"입력된 문장의 오탈자를 교정하고, 각 단어의 중요도를 1~100으로 평가하세요.\n"
-        f"반드시 아래 JSON 형식으로만 응답하세요.\n"
-        f"{{\"corrected\": \"교정된 문장\", \"scores\": {{\"단어\": 90, \"단어\": 10}}}}\n\n"
-        f"문장: {request.text}"
-    )
-    
+    prompt = f"문장 '{request.text}'의 오탈자를 교정하고, 중요 단어(90점 이상)를 <b>태그로 감싸세요. JSON: {{\"result\": \"교정된 문장(태그 포함)\"}}"
     try:
         response = model.generate_content(prompt)
-        # 응답에서 JSON만 추출
         start = response.text.find('{')
         end = response.text.rfind('}') + 1
         data = json.loads(response.text[start:end])
-        
-        corrected_text = data.get("corrected", request.text)
-        scores = data.get("scores", {})
-        
-        # 90점 이상인 단어만 HTML <b> 태그 처리
-        result_words = []
-        for word in corrected_text.split():
-            clean_word = word.strip(".,!?")
-            if scores.get(clean_word, 0) >= 90:
-                result_words.append(f"<b>{word}</b>")
-            else:
-                result_words.append(word)
-                
-        return {"result": " ".join(result_words)}
-    except Exception as e:
-        return {"result": "분석 중 오류가 발생했습니다. (잠시 후 다시 시도해주세요)"}
+        return {"result": data.get("result", "오류 발생")}
+    except:
+        return {"result": "분석 실패"}
