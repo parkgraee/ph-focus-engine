@@ -1,19 +1,11 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
 import openai
 import os
 
 app = FastAPI()
 
 # 환경 변수에서 API 키를 안전하게 불러옵니다
-# client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-# 수정 전
-# client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-# 수정 후 (아래 줄을 그대로 복사해서 붙여넣으세요)
-client = openai.OpenAI(api_key="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")
-
+client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 class TextRequest(BaseModel):
     text: str
