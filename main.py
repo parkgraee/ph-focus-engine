@@ -1,4 +1,6 @@
+Python
 from fastapi import FastAPI
+from pydantic import BaseModel  # 이 줄이 반드시 있어야 합니다!
 import openai
 import os
 
