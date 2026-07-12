@@ -55,37 +55,43 @@ def get_ui():
 
 @app.post("/process")
 def process_text(request: TextRequest):
-    # 1. AI에게 점수 매기기 요청 (중요도 점수만 JSON으로)
+    # AI에게 점수만 매기도록 다시 한번 강력하게 요청
     prompt = (
         f"입력된 문장의 각 단어들의 중요도를 1~100 사이의 점수로 평가하세요.\n"
-        f"절대 원문 텍스트를 수정하지 말고, 단어별 점수만 JSON 형식으로 반환하세요.\n"
-        f"반환 예시: {{\"박훈\": 95, \"님\": 10, \"오세요\": 85}}\n\n"
+        f"절대 원문 텍스트를 수정(삭제, 추가, 변경)하지 마세요.\n"
+        f"오직 단어와 점수 쌍으로 이루어진 JSON 형식만 출력하세요.\n"
+        f"반환 예시: {{\"자\": 10, \"이것\": 95, \"이\": 10}}\n\n"
         f"문장: {request.text}"
     )
     
-    # 2. 스트리밍 처리를 위한 제너레이터 함수
     def generate():
         response = model.generate_content(prompt)
         
-        # JSON 파싱 (AI 응답에서 { } 사이 값만 추출)
         try:
+            # AI 응답에서 JSON 부분만 추출
             start = response.text.find('{')
             end = response.text.rfind('}') + 1
             scores = json.loads(response.text[start:end])
         except:
-            yield "분석 오류 발생"
+            yield request.text # 오류 시 원문 그대로 반환
             return
 
-        # 원문 기반으로 결과물 생성 (직접 문자열 조합)
+        # 원문 기반으로 결과물 생성 (공백 유지)
         words = request.text.split()
-        for word in words:
+        for i, word in enumerate(words):
             clean_word = word.strip(".,!?")
             score = scores.get(clean_word, 0)
             
-            # 90점 이상만 볼드 처리
+            # 볼드체 처리
             if score >= 90:
-                yield f"**{word}** "
+                result_word = f"**{word}**"
             else:
-                yield f"{word} "
+                result_word = word
+                
+            # 단어 사이에만 공백 추가
+            if i < len(words) - 1:
+                yield result_word + " "
+            else:
+                yield result_word
 
     return StreamingResponse(generate(), media_type="text/plain")
