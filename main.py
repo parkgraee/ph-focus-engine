@@ -5,18 +5,12 @@ import os
 
 app = FastAPI()
 
-client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-class TextRequest(BaseModel):
-    text: str
-
-# 1. 여기를 추가하세요: 브라우저로 접속했을 때 보여줄 메인 화면
+# 1. 메인 주소('/')로 접속했을 때 보여줄 화면입니다.
 @app.get("/")
 def read_root():
     return {"message": "PH Focus Engine이 정상 작동 중입니다!"}
 
-# 2. 기존 /process 코드는 유지
+# 2. 기존 기능(/process)은 그대로 유지합니다.
 @app.post("/process")
-def process_text(request: TextRequest):
-    # (기존 로직 그대로)
-    return {"status": "ok"}
+def process_text(request: dict):
+    return {"result": "성공적으로 요청을 받았습니다."}
